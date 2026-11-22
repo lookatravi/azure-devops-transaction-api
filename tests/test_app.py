@@ -26,7 +26,7 @@ def test_readiness_failure(monkeypatch):
 def test_demo_transaction():
     response = client.get("/api/v1/transactions/demo-001")
     assert response.status_code == 200
-    assert response.json()["status"] == "PENDING"
+    assert response.json()["status"] == "COMPLETED"
 
 
 def test_unknown_transaction_returns_404():

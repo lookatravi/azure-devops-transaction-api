@@ -50,3 +50,44 @@ jobs:
             ghcr.io/lookatravi/transaction-api:${{ github.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/lookatravi/azure-devops-transaction-api
+
+
+  deploy-azure:
+    name: Deploy to Azure Container Apps
+    needs: test-and-container-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Login to Azure using OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Azure Container Apps extension
+        run: az extension add --name containerapp --upgrade --yes
+
+      - name: Deploy Docker image
+        run: |
+          az containerapp update \
+            --name transaction-api-ravi \
+            --resource-group rg-ravi-containerapps-lab \
+            --image "ghcr.io/lookatravi/transaction-api:${GITHUB_SHA}"
+
+      - name: Verify revisions and traffic
+        run: |
+          az containerapp revision list \
+            --name transaction-api-ravi \
+            --resource-group rg-ravi-containerapps-lab \
+            -o table
+
+          az containerapp ingress traffic show \
+            --name transaction-api-ravi \
+            --resource-group rg-ravi-containerapps-lab \
+            -o table
